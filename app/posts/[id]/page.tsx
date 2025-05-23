@@ -5,8 +5,9 @@ async function getPost(id: string) {
   return post;
 }
 
-export default async function PostComponent({ params }: { params: { id: string } }) {
-  const post = await getPost(params.id);
+export default async function PostComponent({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const post = await getPost(id);
 
   return (
     <div className='space-y-2'>

@@ -5,8 +5,9 @@ async function getPost(id: string) {
   return post;
 }
 
-export default async function PostDeepComponent({ params }: { params: { id: string } }) {
-  const post = await getPost(params.id);
+export default async function PostDeepComponent({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const post = await getPost(id);
   return (
     <div className='p-2 space-y-2'>
       <Link href='/posts' className='block py-1 text-blue-800 hover:text-blue-600'>

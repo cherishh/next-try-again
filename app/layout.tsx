@@ -32,7 +32,7 @@ export default function RootLayout({
           </div>
           <hr />
         </div>
-        {children}
+        <div className='p-8'>{children}</div>
       </body>
     </html>
   );
