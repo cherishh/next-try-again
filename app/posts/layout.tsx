@@ -16,7 +16,7 @@ export default async function PostLayout({ children }: { children: React.ReactNo
   return (
     <>
       <div className='flex gap-2'>
-        <ul className='list-disc pl-4'>
+        <ul className='list-disc pl-4 overflow-y-auto h-[calc(100vh-120px)] w-64'>
           {[...posts, { id: 'i-do-not-exist', title: 'Non-existent Post' }].map(post => {
             return (
               <li key={post.id} className='whitespace-nowrap'>
