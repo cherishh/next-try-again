@@ -1,7 +1,11 @@
 import Link from 'next/link';
 
 async function getPosts() {
-  const posts = await fetch('https://jsonplaceholder.typicode.com/posts')
+  const posts = await fetch('https://jsonplaceholder.typicode.com/posts', {
+    next: {
+      revalidate: 10,
+    },
+  })
     .then(res => res.json())
     .then(data => data);
   return posts;
