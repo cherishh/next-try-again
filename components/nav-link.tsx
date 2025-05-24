@@ -18,7 +18,7 @@ export function NavLink() {
       <Link className={`link ${pathname === '/posts' ? 'font-bold' : ''}`} href='/posts'>
         Posts
       </Link>{' '}
-      <Link className={`link ${pathname === '/pathless' ? 'font-bold' : ''}`} href='/pathless'>
+      <Link className={`link ${pathname === '/route-group' ? 'font-bold' : ''}`} href='/route-a'>
         Pathless Layout
       </Link>{' '}
       <Link className={`link ${pathname === '/deferred' ? 'font-bold' : ''}`} href='/deferred'>
