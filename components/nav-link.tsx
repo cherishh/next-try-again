@@ -24,6 +24,9 @@ export function NavLink() {
       <Link className={`link ${pathname === '/deferred' ? 'font-bold' : ''}`} href='/deferred'>
         Deferred
       </Link>{' '}
+      <Link className={`link ${pathname === '/llm' ? 'font-bold' : ''}`} href='/llm'>
+        LLM
+      </Link>{' '}
       <Link
         className={`link ${pathname === '/this-route-does-not-exist' ? 'font-bold' : ''}`}
         href='/this-route-does-not-exist'
