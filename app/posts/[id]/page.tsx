@@ -9,7 +9,7 @@ export default async function PostComponent({ params }: { params: Promise<{ id: 
     <div className='space-y-2'>
       <h4 className='text-xl font-bold underline'>{post.title}</h4>
       <div className='text-sm'>{post.body}</div>
-      <Link href={`/posts/${post.id}/deep`} className='block py-1 text-blue-800 hover:text-blue-600'>
+      <Link prefetch={true} href={`/posts/${post.id}/deep`} className='block py-1 text-blue-800 hover:text-blue-600'>
         Deep View
       </Link>
     </div>
