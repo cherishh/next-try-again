@@ -8,13 +8,15 @@ function getOther({ name }: { name: string }): Promise<Other> {
     setTimeout(() => {
       resolve({
         name,
-        msg: 'hello world',
+        msg: 'hello world ' + Math.random(),
       });
     }, 2000);
   });
 }
 
 export default async function DeferredOther({ name }: { name: string }) {
+  'use cache';
+
   const other: Other = await getOther({ name });
   return (
     <div>

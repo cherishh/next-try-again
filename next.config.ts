@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   instrumentationHook: false,
   experimental: {
     useCache: true,
+    // dynamicIO: true,
+    // ppr: 'incremental',
   },
 };
 

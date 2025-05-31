@@ -3,7 +3,7 @@ import Link from 'next/link';
 async function getPosts() {
   const posts = await fetch('https://jsonplaceholder.typicode.com/posts', {
     next: {
-      revalidate: 10,
+      // revalidate: 10, // server side cache
     },
   })
     .then(res => res.json())
