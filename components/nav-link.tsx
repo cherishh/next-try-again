@@ -29,11 +29,14 @@ export function NavLink() {
         <Link className={`link ${pathname === '/llm' ? 'font-bold' : ''}`} href='/llm'>
           LLM
         </Link>{' '}
+        <Link className={`link ${pathname === '/dashboard' ? 'font-bold' : ''}`} href='/dashboard'>
+          Dashboard
+        </Link>{' '}
         <Link
           className={`link ${pathname === '/this-route-does-not-exist' ? 'font-bold' : ''}`}
           href='/this-route-does-not-exist'
         >
-          This Route Does Not Exist
+          404
         </Link>
       </div>
       <div>

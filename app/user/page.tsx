@@ -1,4 +1,4 @@
-import { getUserById } from '@/lib/db/queries/select';
+import { getUserById } from '@/db/queries/select';
 
 async function User() {
   const user = await getUserById(1);
