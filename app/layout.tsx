@@ -1,3 +1,4 @@
+import { unstable_ViewTransition as ViewTransition } from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -32,7 +33,11 @@ export default function RootLayout({
           </div>
           <hr />
         </div>
-        <div className='p-8'>{children}</div>
+
+        <div className='p-8'>
+          {/* <ViewTransition>{children}</ViewTransition> */}
+          {children}
+        </div>
       </body>
     </html>
   );
