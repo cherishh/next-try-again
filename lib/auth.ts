@@ -3,6 +3,7 @@ import { admin } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from '@/db'; // your drizzle instance
 import * as schema from '@/db/schema/auth-schema';
+import { nextCookies } from 'better-auth/next-js';
 
 export const auth = betterAuth({
   trustedOrigins: ['http://localhost:3000'],
@@ -16,6 +17,7 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    nextCookies(),
     admin({
       adminRoles: ['admin', 'superadmin'],
     }),

@@ -2,7 +2,7 @@
 
 import { MoonIcon, SunIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button } from './ui/button';
+import { Button } from '../ui/button';
 
 export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);

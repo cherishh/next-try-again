@@ -2,7 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import ThemeToggle from '@/components/mode-toggle';
+import ThemeToggle from '@/components/shared/mode-toggle';
+import LoginBtn from './login-btn';
 
 export function NavLink() {
   const pathname = usePathname();
@@ -40,7 +41,7 @@ export function NavLink() {
         </Link>
       </div>
       <div>
-        <ThemeToggle />
+        <ThemeToggle /> <LoginBtn />
       </div>
     </nav>
   );
