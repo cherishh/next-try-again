@@ -24,10 +24,10 @@ export const auth = betterAuth({
     provider: 'pg',
     usePlural: true,
     schema: {
-      verifications: schema.verification,
-      sessions: schema.session,
-      accounts: schema.account,
-      users: schema.user,
+      verifications: schema.verifications,
+      sessions: schema.sessions,
+      accounts: schema.accounts,
+      users: schema.users,
     },
   }),
 });
