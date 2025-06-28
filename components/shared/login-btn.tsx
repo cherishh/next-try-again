@@ -1,29 +1,19 @@
 'use client';
 
 import { LogInIcon, LogOutIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
-import { signIn, signOut, getSession } from '@/lib/auth-client';
-import { User } from 'better-auth';
+import { signIn, signOut, useSession } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 
 export default function LoginBtn() {
   const router = useRouter();
-  const [user, setUser] = useState<User | undefined>(undefined);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const session = await getSession();
-      console.log(session, 'session');
-      setUser(session?.data?.user);
-    };
-    fetchUser();
-  }, []);
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
 
   const handleLogin = async () => {
     await signIn.social({
       provider: 'github',
-      callbackURL: '/dashboard',
+      callbackURL: '/',
     });
   };
 
@@ -43,7 +33,6 @@ export default function LoginBtn() {
           fetchOptions: {
             onSuccess: () => {
               router.push('/'); // redirect to login page
-              setUser(undefined);
             },
           },
         });
