@@ -14,6 +14,93 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
   }) as T;
 }
 
+// 高斯模糊算法 - 用于蒙版羽化
+function gaussianBlur(imageData: ImageData, radius: number): ImageData {
+  const { data, width, height } = imageData;
+  const output = new ImageData(width, height);
+
+  // 创建高斯核
+  const kernel = createGaussianKernel(radius);
+  const kernelSize = kernel.length;
+  const halfKernel = Math.floor(kernelSize / 2);
+
+  // 水平方向模糊
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let sum = 0;
+      let weightSum = 0;
+
+      for (let i = 0; i < kernelSize; i++) {
+        const px = x + i - halfKernel;
+        if (px >= 0 && px < width) {
+          const idx = (y * width + px) * 4;
+          sum += data[idx] * kernel[i]; // 只处理R通道（灰度蒙版）
+          weightSum += kernel[i];
+        }
+      }
+
+      const outputIdx = (y * width + x) * 4;
+      const blurredValue = Math.round(sum / weightSum);
+      output.data[outputIdx] = blurredValue; // R
+      output.data[outputIdx + 1] = blurredValue; // G
+      output.data[outputIdx + 2] = blurredValue; // B
+      output.data[outputIdx + 3] = 255; // A
+    }
+  }
+
+  // 垂直方向模糊
+  const temp = new ImageData(width, height);
+  temp.data.set(output.data);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let sum = 0;
+      let weightSum = 0;
+
+      for (let i = 0; i < kernelSize; i++) {
+        const py = y + i - halfKernel;
+        if (py >= 0 && py < height) {
+          const idx = (py * width + x) * 4;
+          sum += temp.data[idx] * kernel[i];
+          weightSum += kernel[i];
+        }
+      }
+
+      const outputIdx = (y * width + x) * 4;
+      const blurredValue = Math.round(sum / weightSum);
+      output.data[outputIdx] = blurredValue;
+      output.data[outputIdx + 1] = blurredValue;
+      output.data[outputIdx + 2] = blurredValue;
+      output.data[outputIdx + 3] = 255;
+    }
+  }
+
+  return output;
+}
+
+// 创建高斯核
+function createGaussianKernel(radius: number): number[] {
+  const size = Math.ceil(radius * 2) * 2 + 1;
+  const kernel = new Array(size);
+  const sigma = radius / 3;
+  const sigmaSq = sigma * sigma;
+  const center = Math.floor(size / 2);
+  let sum = 0;
+
+  for (let i = 0; i < size; i++) {
+    const x = i - center;
+    kernel[i] = Math.exp(-(x * x) / (2 * sigmaSq));
+    sum += kernel[i];
+  }
+
+  // 归一化
+  for (let i = 0; i < size; i++) {
+    kernel[i] /= sum;
+  }
+
+  return kernel;
+}
+
 interface ProcessedImage {
   original: string;
   processed: string;
@@ -35,6 +122,8 @@ export default function BackgroundBlur() {
   const [isAdjustingBlur, setIsAdjustingBlur] = useState(false);
   const [originalImageUrl, setOriginalImageUrl] = useState<string>('');
   const [maskImageUrl, setMaskImageUrl] = useState<string>('');
+  const [hasError, setHasError] = useState(false); // 追踪错误状态
+  const [lastFailedFile, setLastFailedFile] = useState<File | null>(null); // 保存失败的文件用于重试
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -112,12 +201,25 @@ export default function BackgroundBlur() {
       return;
     }
 
+    // 清除之前的错误状态（用户上传新文件）
+    setHasError(false);
+    setLastFailedFile(null);
+
     setSelectedFile(file);
     processImage(file);
   };
 
+  // 重试处理失败的文件
+  const retryLastFile = () => {
+    if (lastFailedFile) {
+      setHasError(false);
+      processImage(lastFailedFile);
+    }
+  };
+
   const processImage = async (file: File) => {
     setIsProcessing(true);
+    setHasError(false); // 清除之前的错误状态
 
     try {
       // Create preview URL for original image
@@ -145,7 +247,12 @@ export default function BackgroundBlur() {
       setMaskImageUrl(data.maskUrl);
 
       // Now we have originalUrl and maskUrl, we need to composite them using Canvas
-      const processedImageUrl = await compositeImageWithCanvas(originalUrl, data.maskUrl, blurIntensity);
+      const processedImageUrl = await compositeImageWithCanvas(
+        originalUrl,
+        data.maskUrl,
+        blurIntensity,
+        true // 默认启用边缘羽化
+      );
 
       // Create a temporary image to get dimensions
       const img = new Image();
@@ -158,17 +265,50 @@ export default function BackgroundBlur() {
           height: img.height,
         });
         setIsProcessing(false);
+        setHasError(false); // 成功时清除错误状态
+        setLastFailedFile(null);
         toast.success('背景模糊处理成功！');
       };
       img.onerror = () => {
+        // 设置错误状态
+        setHasError(true);
+        setLastFailedFile(file);
+
         setIsProcessing(false);
-        toast.error('加载处理后的图片失败');
+        setSelectedFile(null);
+        setProcessedImage(null);
+        setOriginalImageUrl('');
+        setMaskImageUrl('');
+        setIsAdjustingBlur(false);
+
+        // 清理文件输入
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+
+        toast.error('加载处理后的图片失败，请重新上传');
       };
       img.src = processedImageUrl;
     } catch (error) {
       console.error('Error processing image:', error);
       toast.error(error instanceof Error ? error.message : '处理图片失败，请稍后再试');
+
+      // 设置错误状态并保存失败的文件
+      setHasError(true);
+      setLastFailedFile(file);
+
+      // 重置处理状态，但保留错误信息
       setIsProcessing(false);
+      setSelectedFile(null);
+      setProcessedImage(null);
+      setOriginalImageUrl('');
+      setMaskImageUrl('');
+      setIsAdjustingBlur(false);
+
+      // 清理文件输入
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -176,7 +316,8 @@ export default function BackgroundBlur() {
   const compositeImageWithCanvas = async (
     originalUrl: string,
     maskUrl: string,
-    intensity: number = 15
+    intensity: number = 15,
+    useFeathering: boolean = true
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
       // 创建图片元素
@@ -215,19 +356,29 @@ export default function BackgroundBlur() {
             maskCanvas.width = canvas.width;
             maskCanvas.height = canvas.height;
             maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
-            const maskImageData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+            let maskImageData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
 
-            // 5. 像素级合成：前景用原图，背景用模糊图
+            // 5. 蒙版边缘羽化处理（自适应强度）
+            if (useFeathering) {
+              const featherRadius = Math.max(1, Math.min(intensity * 0.25, 8)); // 自适应羽化半径
+              if (featherRadius > 1) {
+                console.log(`应用蒙版羽化，半径: ${featherRadius.toFixed(1)}px`);
+                maskImageData = gaussianBlur(maskImageData, featherRadius);
+              }
+            }
+
+            // 6. 像素级合成：前景用原图，背景用模糊图（使用羽化蒙版）
             const resultImageData = ctx.createImageData(canvas.width, canvas.height);
 
             for (let i = 0; i < originalImageData.data.length; i += 4) {
-              // 获取蒙版亮度值 (0-255)
+              // 获取羽化后的蒙版亮度值 (0-255)
               const maskValue = maskImageData.data[i]; // R通道，因为是灰度图
 
-              // 归一化到 0-1
+              // 归一化到 0-1（羽化后的值可能不是纯0或255）
               const alpha = maskValue / 255;
 
               // 线性插值：alpha=1(白色)用原图，alpha=0(黑色)用模糊图
+              // 羽化边缘会有0-1之间的渐变值，创造柔和过渡
               resultImageData.data[i] = alpha * originalImageData.data[i] + (1 - alpha) * blurredImageData.data[i]; // R
               resultImageData.data[i + 1] =
                 alpha * originalImageData.data[i + 1] + (1 - alpha) * blurredImageData.data[i + 1]; // G
@@ -236,10 +387,10 @@ export default function BackgroundBlur() {
               resultImageData.data[i + 3] = 255; // Alpha通道设为不透明
             }
 
-            // 6. 绘制最终结果
+            // 7. 绘制最终结果
             ctx.putImageData(resultImageData, 0, 0);
 
-            // 7. 转换为DataURL
+            // 8. 转换为DataURL
             const resultUrl = canvas.toDataURL('image/png');
             resolve(resultUrl);
           } catch (error) {
@@ -272,7 +423,12 @@ export default function BackgroundBlur() {
       if (!originalImageUrl || !maskImageUrl) return;
 
       try {
-        const newProcessedUrl = await compositeImageWithCanvas(originalImageUrl, maskImageUrl, intensity);
+        const newProcessedUrl = await compositeImageWithCanvas(
+          originalImageUrl,
+          maskImageUrl,
+          intensity,
+          true // 始终启用边缘羽化
+        );
 
         setProcessedImage(prev =>
           prev
@@ -500,7 +656,7 @@ export default function BackgroundBlur() {
                     <input
                       type='range'
                       min='0'
-                      max='30'
+                      max='25'
                       value={blurIntensity}
                       onChange={e => handleBlurIntensityChange(Number(e.target.value))}
                       className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider'
@@ -545,6 +701,32 @@ export default function BackgroundBlur() {
                 </div>
               </div>
             )}
+
+            {/* Error Status with Retry */}
+            {hasError && lastFailedFile && !isProcessing && (
+              <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
+                <div className='flex items-start space-x-3'>
+                  <div className='flex-shrink-0'>
+                    <div className='w-5 h-5 rounded-full bg-red-100 flex items-center justify-center'>
+                      <span className='text-red-600 text-xs'>✕</span>
+                    </div>
+                  </div>
+                  <div className='flex-1'>
+                    <p className='text-sm font-medium text-red-800'>处理失败</p>
+                    <p className='text-xs text-red-600 mb-3'>
+                      文件: {lastFailedFile.name} - 可能是网络超时或AI服务繁忙
+                    </p>
+                    <Button
+                      onClick={retryLastFile}
+                      className='bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 h-auto'
+                      disabled={isProcessing}
+                    >
+                      重试处理
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Side - Demo/Result Display */}
@@ -576,11 +758,16 @@ export default function BackgroundBlur() {
                     <img src={processedImage.original} alt='原图' className='w-full h-full object-cover' />
                   </div>
 
-                  {/* Scanning Line */}
+                  {/* Scanning Line with Handle */}
                   <div
                     className='absolute top-0 bottom-0 w-1 bg-green-400 shadow-lg'
                     style={{ left: `${scanPosition}%` }}
-                  />
+                  >
+                    {/* Drag Handle - Centered */}
+                    <div className='absolute top-1/2 -translate-y-1/2 -left-2 w-5 h-5 bg-green-500 rounded-full shadow-md border-2 border-white cursor-col-resize flex items-center justify-center'>
+                      <div className='w-1 h-3 bg-white rounded-full opacity-70'></div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className='relative w-full h-full'>
@@ -603,7 +790,7 @@ export default function BackgroundBlur() {
                     />
                   </div>
 
-                  {/* Scanning Line */}
+                  {/* Scanning Line (Demo - No Handle) */}
                   <div
                     className='absolute top-0 bottom-0 w-1 bg-green-400 shadow-lg'
                     style={{ left: `${scanPosition}%` }}
@@ -624,13 +811,15 @@ export default function BackgroundBlur() {
             {processedImage && (
               <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
                 <h3 className='font-medium text-green-800 mb-2'>处理完成！</h3>
-                <p className='text-sm text-green-700'>AI 已成功识别并分离前景主体，背景已应用模糊效果。</p>
+                <p className='text-sm text-green-700'>
+                  AI 已成功识别并分离前景主体，背景已应用模糊效果并进行边缘柔化。
+                </p>
                 <div className='mt-3 space-y-1'>
                   <div className='flex items-center text-xs text-green-600'>
                     <div className='w-3 h-3 bg-green-400 rounded-full mr-2'></div>
-                    <span>拖动绿色线条对比效果：左侧原图，右侧背景模糊</span>
+                    <span>拖动绿色手柄对比效果：左侧原图，右侧背景模糊</span>
                   </div>
-                  <p className='text-xs text-gray-500 ml-5'>💡 在预览区域点击并拖动鼠标来查看不同位置的对比效果</p>
+                  <p className='text-xs text-gray-500 ml-5'>💡 点击绿色圆形手柄并拖动来查看不同位置的对比效果</p>
                 </div>
               </div>
             )}
