@@ -638,7 +638,7 @@ export default function BackgroundBlur() {
             <p className='text-sm text-gray-500 text-center'>Supported format: JPEG, PNG (Size limit 5MB)</p>
 
             {/* Example Images */}
-            <div className='space-y-3'>
+            {/* <div className='space-y-3'>
               <p className='text-sm text-gray-600 text-center'>Or click 👇 to try</p>
               <div className='flex justify-center gap-3'>
                 {exampleImages.map((src, index) => (
@@ -652,7 +652,7 @@ export default function BackgroundBlur() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             {/* Blur Intensity Control */}
             {processedImage && (
@@ -812,9 +812,9 @@ export default function BackgroundBlur() {
                 <div className='relative w-full h-full'>
                   {/* Demo Blurred Background */}
                   <img
-                    src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
+                    src='https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/2.webp'
                     alt='Demo - Blurred'
-                    className='absolute inset-0 w-full h-full object-cover blur-md'
+                    className='w-full h-full object-cover'
                   />
 
                   {/* Demo Original with Mask */}
@@ -823,7 +823,7 @@ export default function BackgroundBlur() {
                     style={{ clipPath: `inset(0 ${100 - scanPosition}% 0 0)` }}
                   >
                     <img
-                      src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
+                      src='https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/1.webp'
                       alt='Demo - Original'
                       className='w-full h-full object-cover'
                     />

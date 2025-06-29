@@ -17,7 +17,7 @@ export default function Home() {
               <span className='text-foreground'>using AI in seconds</span>
             </h1>
             <p className='text-lg text-muted-foreground mb-8 max-w-2xl mx-auto'>
-              Upload, download with the background automatically blurred.
+              Blur backgrounds for stunning portraits with just a few clicks.
               <br />
               Free to use. No signup required!
             </p>
@@ -110,7 +110,7 @@ export default function Home() {
       </div>
 
       {/* Stats Section */}
-      <div className='py-16'>
+      {/* <div className='py-16'>
         <div className='max-w-4xl mx-auto px-4 text-center'>
           <div className='mb-8'>
             <p className='text-primary font-medium mb-2'>Impact</p>
@@ -138,7 +138,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* FAQ Section */}
       <FAQSection />
