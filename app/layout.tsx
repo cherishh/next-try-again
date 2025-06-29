@@ -4,7 +4,6 @@ import './globals.css';
 import { NavLink } from '@/components/shared/nav-link';
 import { Toaster } from '@/components/ui/sonner';
 
-
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -16,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Raphael AI - Free Unlimited AI Image Generator',
-  description: 'Create stunning AI-generated images in seconds with our free unlimited AI image generator powered by FLUX. No registration required.',
+  title: 'Blur Background AI - Blur Backgrounds for Free',
+  description: 'Blur Backgrounds for Free with our free advanced AI. No registration required.',
 };
 
 export default function RootLayout({
