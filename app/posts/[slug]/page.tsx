@@ -12,7 +12,7 @@ export default async function PostComponent({ params }: { params: Promise<{ slug
 
   return (
     <article className='max-w-4xl mx-auto px-4 py-8'>
-      {/* 文章头部信息 */}
+      {/* Article Header */}
       <header className='mb-8'>
         <div className='flex items-start justify-between mb-4'>
           <div className='flex-1'>
@@ -21,32 +21,32 @@ export default async function PostComponent({ params }: { params: Promise<{ slug
           </div>
         </div>
 
-        {/* 文章元数据 */}
+        {/* Article Metadata */}
         <div className='bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-6'>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             {post.type && (
               <div>
-                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>类型</span>
+                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>Type</span>
                 <p className='text-gray-900 dark:text-gray-100 capitalize'>
-                  {post.type === 'article' ? '文章' : post.type}
+                  {post.type === 'article' ? 'Article' : post.type}
                 </p>
               </div>
             )}
             {post.readTime && (
               <div>
-                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>阅读时长</span>
+                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>Read Time</span>
                 <p className='text-gray-900 dark:text-gray-100'>{post.readTime}</p>
               </div>
             )}
             {post.author && (
               <div>
-                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>作者</span>
+                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>Author</span>
                 <p className='text-gray-900 dark:text-gray-100'>{post.author}</p>
               </div>
             )}
             {post.publishDate && (
               <div>
-                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>发布日期</span>
+                <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>Published</span>
                 <p className='text-gray-900 dark:text-gray-100'>{post.publishDate}</p>
               </div>
             )}
@@ -54,14 +54,14 @@ export default async function PostComponent({ params }: { params: Promise<{ slug
 
           {post.category && (
             <div className='mt-4'>
-              <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>分类</span>
+              <span className='text-sm font-medium text-gray-500 dark:text-gray-400'>Category</span>
               <p className='text-gray-900 dark:text-gray-100'>{post.category}</p>
             </div>
           )}
 
           {post.tags && post.tags.length > 0 && (
             <div className='mt-4'>
-              <span className='text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2'>标签</span>
+              <span className='text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2'>Tags</span>
               <div className='flex flex-wrap gap-2'>
                 {post.tags.map((tag, index) => (
                   <span
@@ -77,7 +77,7 @@ export default async function PostComponent({ params }: { params: Promise<{ slug
         </div>
       </header>
 
-      {/* MDX 内容 */}
+      {/* MDX Content */}
       <div className='prose prose-lg max-w-none dark:prose-invert'>
         <MDXContent content={post.content} />
       </div>

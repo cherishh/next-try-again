@@ -543,9 +543,11 @@ export default function BackgroundBlur() {
   };
 
   const exampleImages = [
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1000&h=1000&fit=crop&crop=face',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=1000&h=1000&fit=crop',
-    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=1000&h=1000&fit=crop',
+    // 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1000&h=1000&fit=crop&crop=face',
+    // 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=1000&h=1000&fit=crop',
+    // 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=1000&h=1000&fit=crop',
+    'https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/kids1%202.jpg',
+    'https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/kids2_%E5%89%AF%E6%9C%AC.jpg',
   ];
 
   return (
@@ -638,7 +640,7 @@ export default function BackgroundBlur() {
             <p className='text-sm text-gray-500 text-center'>Supported format: JPEG, PNG (Size limit 5MB)</p>
 
             {/* Example Images */}
-            {/* <div className='space-y-3'>
+            <div className='space-y-3'>
               <p className='text-sm text-gray-600 text-center'>Or click 👇 to try</p>
               <div className='flex justify-center gap-3'>
                 {exampleImages.map((src, index) => (
@@ -652,7 +654,7 @@ export default function BackgroundBlur() {
                   </button>
                 ))}
               </div>
-            </div> */}
+            </div>
 
             {/* Blur Intensity Control */}
             {processedImage && (
