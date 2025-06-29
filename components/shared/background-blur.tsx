@@ -1,9 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Upload, Download, Loader2, User } from 'lucide-react';
+
+// 防抖函数
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  }) as T;
+}
 
 interface ProcessedImage {
   original: string;
@@ -20,6 +29,13 @@ export default function BackgroundBlur() {
   const [dragActive, setDragActive] = useState(false);
   const [scanPosition, setScanPosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  // 模糊强度控制
+  const [blurIntensity, setBlurIntensity] = useState(15);
+  const [isAdjustingBlur, setIsAdjustingBlur] = useState(false);
+  const [originalImageUrl, setOriginalImageUrl] = useState<string>('');
+  const [maskImageUrl, setMaskImageUrl] = useState<string>('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -124,8 +140,12 @@ export default function BackgroundBlur() {
 
       const data = await response.json();
 
+      // 保存原图和蒙版URL以供后续调整模糊强度使用
+      setOriginalImageUrl(originalUrl);
+      setMaskImageUrl(data.maskUrl);
+
       // Now we have originalUrl and maskUrl, we need to composite them using Canvas
-      const processedImageUrl = await compositeImageWithCanvas(originalUrl, data.maskUrl);
+      const processedImageUrl = await compositeImageWithCanvas(originalUrl, data.maskUrl, blurIntensity);
 
       // Create a temporary image to get dimensions
       const img = new Image();
@@ -153,7 +173,11 @@ export default function BackgroundBlur() {
   };
 
   // Canvas合成函数：将原图与蒙版合成为背景模糊图片
-  const compositeImageWithCanvas = async (originalUrl: string, maskUrl: string): Promise<string> => {
+  const compositeImageWithCanvas = async (
+    originalUrl: string,
+    maskUrl: string,
+    intensity: number = 15
+  ): Promise<string> => {
     return new Promise((resolve, reject) => {
       // 创建图片元素
       const originalImg = new Image();
@@ -173,7 +197,7 @@ export default function BackgroundBlur() {
             canvas.height = originalImg.height;
 
             // 1. 先绘制模糊的背景
-            ctx.filter = 'blur(15px)';
+            ctx.filter = `blur(${intensity}px)`;
             ctx.drawImage(originalImg, 0, 0);
 
             // 2. 获取模糊背景的图像数据
@@ -242,6 +266,51 @@ export default function BackgroundBlur() {
     });
   };
 
+  // 重新合成图片（用于调整模糊强度）
+  const recompositeImage = useCallback(
+    async (intensity: number) => {
+      if (!originalImageUrl || !maskImageUrl) return;
+
+      try {
+        const newProcessedUrl = await compositeImageWithCanvas(originalImageUrl, maskImageUrl, intensity);
+
+        setProcessedImage(prev =>
+          prev
+            ? {
+                ...prev,
+                processed: newProcessedUrl,
+              }
+            : null
+        );
+
+        setIsAdjustingBlur(false);
+      } catch (error) {
+        console.error('重新合成失败:', error);
+        toast.error('调整模糊强度失败');
+        setIsAdjustingBlur(false);
+      }
+    },
+    [originalImageUrl, maskImageUrl]
+  );
+
+  // 防抖的重新合成
+  const debouncedRecomposite = useMemo(
+    () =>
+      debounce((intensity: number) => {
+        recompositeImage(intensity);
+      }, 300),
+    [recompositeImage]
+  );
+
+  // 处理模糊强度变化
+  const handleBlurIntensityChange = (intensity: number) => {
+    setBlurIntensity(intensity);
+    if (processedImage) {
+      setIsAdjustingBlur(true);
+      debouncedRecomposite(intensity);
+    }
+  };
+
   const downloadImage = async () => {
     if (!processedImage) return;
 
@@ -285,184 +354,289 @@ export default function BackgroundBlur() {
   ];
 
   return (
-    <div className='w-full max-w-7xl mx-auto'>
-      <div className='grid lg:grid-cols-2 gap-16 items-start'>
-        {/* Left Side - Upload Area */}
-        <div className='space-y-6'>
-          <div
-            className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-colors
+    <>
+      <style jsx>{`
+        .slider {
+          -webkit-appearance: none;
+          background: #e5e7eb;
+          outline: none;
+          border-radius: 8px;
+        }
+
+        .slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #f97316;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #f97316;
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .slider:disabled::-webkit-slider-thumb {
+          cursor: not-allowed;
+        }
+
+        .slider:disabled::-moz-range-thumb {
+          cursor: not-allowed;
+        }
+      `}</style>
+      <div className='w-full max-w-7xl mx-auto'>
+        <div className='grid lg:grid-cols-2 gap-16 items-start'>
+          {/* Left Side - Upload Area */}
+          <div className='space-y-6'>
+            <div
+              className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-colors
               ${dragActive ? 'border-orange-400 bg-orange-50/50' : 'border-gray-300'}
               ${isProcessing ? 'opacity-50 pointer-events-none' : 'hover:border-orange-400/50'}
             `}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            <input ref={fileInputRef} type='file' accept='image/*' onChange={handleFileInput} className='hidden' />
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <input ref={fileInputRef} type='file' accept='image/*' onChange={handleFileInput} className='hidden' />
 
-            <div className='space-y-6'>
-              {/* Avatar Icon */}
-              <div className='w-16 h-16 mx-auto bg-orange-100 rounded-full flex items-center justify-center'>
-                <User className='h-8 w-8 text-orange-500' />
+              <div className='space-y-6'>
+                {/* Avatar Icon */}
+                <div className='w-16 h-16 mx-auto bg-orange-100 rounded-full flex items-center justify-center'>
+                  <User className='h-8 w-8 text-orange-500' />
+                </div>
+
+                <div>
+                  <p className='text-lg font-medium text-gray-600 mb-2'>拖放图片到此处</p>
+                  <p className='text-gray-400 mb-6'>或者</p>
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isProcessing}
+                    className='bg-gray-900 hover:bg-gray-800 text-white px-8 py-3 rounded-lg font-medium'
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        正在处理中...
+                      </>
+                    ) : (
+                      '上传图片'
+                    )}
+                  </Button>
+                </div>
               </div>
+            </div>
 
-              <div>
-                <p className='text-lg font-medium text-gray-600 mb-2'>拖放图片到此处</p>
-                <p className='text-gray-400 mb-6'>或者</p>
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isProcessing}
-                  className='bg-gray-900 hover:bg-gray-800 text-white px-8 py-3 rounded-lg font-medium'
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      正在处理中...
-                    </>
-                  ) : (
-                    '上传图片'
+            <p className='text-sm text-gray-500 text-center'>支持格式：JPEG、PNG（最大 5MB）</p>
+
+            {/* Example Images */}
+            <div className='space-y-3'>
+              <p className='text-sm text-gray-600 text-center'>或者点击以下示例图片来试试</p>
+              <div className='flex justify-center gap-3'>
+                {exampleImages.map((src, index) => (
+                  <button
+                    key={index}
+                    onClick={() => tryExampleImage(src)}
+                    className='relative overflow-hidden rounded-lg hover:opacity-80 transition-opacity border border-gray-200'
+                    disabled={isProcessing}
+                  >
+                    <img src={src} alt={`示例 ${index + 1}`} className='w-14 h-14 object-cover' />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Blur Intensity Control */}
+            {processedImage && (
+              <div className='space-y-4 pt-4'>
+                <div className='bg-gray-50 rounded-lg p-4'>
+                  <h3 className='text-sm font-medium text-gray-700 mb-3'>模糊强度调节</h3>
+
+                  {/* Preset Buttons */}
+                  <div className='flex gap-2 mb-4'>
+                    <button
+                      onClick={() => handleBlurIntensityChange(5)}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                        blurIntensity <= 8 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      轻度
+                    </button>
+                    <button
+                      onClick={() => handleBlurIntensityChange(15)}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                        blurIntensity > 8 && blurIntensity <= 20
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      中度
+                    </button>
+                    <button
+                      onClick={() => handleBlurIntensityChange(25)}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                        blurIntensity > 20 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      重度
+                    </button>
+                  </div>
+
+                  {/* Slider */}
+                  <div className='space-y-2'>
+                    <input
+                      type='range'
+                      min='0'
+                      max='30'
+                      value={blurIntensity}
+                      onChange={e => handleBlurIntensityChange(Number(e.target.value))}
+                      className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider'
+                      disabled={isAdjustingBlur}
+                    />
+                    <div className='flex justify-between text-xs text-gray-500'>
+                      <span>无模糊</span>
+                      <span>强模糊</span>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  {isAdjustingBlur && (
+                    <div className='flex items-center gap-2 mt-2 text-xs text-orange-600'>
+                      <Loader2 className='h-3 w-3 animate-spin' />
+                      <span>正在调整模糊效果...</span>
+                    </div>
                   )}
+                </div>
+
+                {/* Download Button */}
+                <Button
+                  onClick={downloadImage}
+                  className='w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium'
+                  disabled={isAdjustingBlur}
+                >
+                  <Download className='mr-2 h-4 w-4' />
+                  下载背景模糊图片
                 </Button>
               </div>
-            </div>
-          </div>
+            )}
 
-          <p className='text-sm text-gray-500 text-center'>支持格式：JPEG、PNG（最大 5MB）</p>
-
-          {/* Example Images */}
-          <div className='space-y-3'>
-            <p className='text-sm text-gray-600 text-center'>或者点击以下示例图片来试试</p>
-            <div className='flex justify-center gap-3'>
-              {exampleImages.map((src, index) => (
-                <button
-                  key={index}
-                  onClick={() => tryExampleImage(src)}
-                  className='relative overflow-hidden rounded-lg hover:opacity-80 transition-opacity border border-gray-200'
-                  disabled={isProcessing}
-                >
-                  <img src={src} alt={`示例 ${index + 1}`} className='w-14 h-14 object-cover' />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Download Button for Processed Image */}
-          {processedImage && (
-            <div className='pt-4'>
-              <Button
-                onClick={downloadImage}
-                className='w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium'
-              >
-                <Download className='mr-2 h-4 w-4' />
-                下载背景模糊图片
-              </Button>
-            </div>
-          )}
-
-          {/* Processing Status */}
-          {isProcessing && (
-            <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
-              <div className='flex items-center space-x-3'>
-                <Loader2 className='h-5 w-5 animate-spin text-blue-600' />
-                <div>
-                  <p className='text-sm font-medium text-blue-800'>正在处理您的图片</p>
-                  <p className='text-xs text-blue-600'>AI 正在分离前景与背景，请稍候...</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Side - Demo/Result Display */}
-        <div className='space-y-6'>
-          <div
-            ref={previewRef}
-            className={`relative rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-green-50 aspect-[4/3] ${
-              processedImage ? 'cursor-col-resize' : ''
-            }`}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            {processedImage ? (
-              <div className='relative w-full h-full'>
-                {/* Blurred Background Image */}
-                <img
-                  src={processedImage.processed}
-                  alt='背景模糊效果'
-                  className='absolute inset-0 w-full h-full object-cover'
-                />
-
-                {/* Original Image with Mask */}
-                <div
-                  className='absolute inset-0 overflow-hidden'
-                  style={{ clipPath: `inset(0 ${100 - scanPosition}% 0 0)` }}
-                >
-                  <img src={processedImage.original} alt='原图' className='w-full h-full object-cover' />
-                </div>
-
-                {/* Scanning Line */}
-                <div
-                  className='absolute top-0 bottom-0 w-1 bg-green-400 shadow-lg'
-                  style={{ left: `${scanPosition}%` }}
-                />
-              </div>
-            ) : (
-              <div className='relative w-full h-full'>
-                {/* Demo Blurred Background */}
-                <img
-                  src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
-                  alt='演示 - 背景模糊'
-                  className='absolute inset-0 w-full h-full object-cover blur-md'
-                />
-
-                {/* Demo Original with Mask */}
-                <div
-                  className='absolute inset-0 overflow-hidden'
-                  style={{ clipPath: `inset(0 ${100 - scanPosition}% 0 0)` }}
-                >
-                  <img
-                    src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
-                    alt='演示 - 原图'
-                    className='w-full h-full object-cover'
-                  />
-                </div>
-
-                {/* Scanning Line */}
-                <div
-                  className='absolute top-0 bottom-0 w-1 bg-green-400 shadow-lg'
-                  style={{ left: `${scanPosition}%` }}
-                />
-
-                {/* Overlay Text */}
-                <div className='absolute inset-0 flex items-center justify-center bg-black/20'>
-                  <div className='text-center text-white'>
-                    <p className='text-lg font-semibold mb-2'>体验 AI 背景模糊</p>
-                    <p className='text-sm opacity-90'>上传您的照片开始处理</p>
+            {/* Processing Status */}
+            {isProcessing && (
+              <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+                <div className='flex items-center space-x-3'>
+                  <Loader2 className='h-5 w-5 animate-spin text-blue-600' />
+                  <div>
+                    <p className='text-sm font-medium text-blue-800'>正在处理您的图片</p>
+                    <p className='text-xs text-blue-600'>AI 正在分离前景与背景，请稍候...</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Result Info */}
-          {processedImage && (
-            <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
-              <h3 className='font-medium text-green-800 mb-2'>处理完成！</h3>
-              <p className='text-sm text-green-700'>AI 已成功识别并分离前景主体，背景已应用模糊效果。</p>
-              <div className='mt-3 space-y-1'>
-                <div className='flex items-center text-xs text-green-600'>
-                  <div className='w-3 h-3 bg-green-400 rounded-full mr-2'></div>
-                  <span>拖动绿色线条对比效果：左侧原图，右侧背景模糊</span>
+          {/* Right Side - Demo/Result Display */}
+          <div className='space-y-6'>
+            <div
+              ref={previewRef}
+              className={`relative rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-green-50 aspect-[4/3] ${
+                processedImage ? 'cursor-col-resize' : ''
+              }`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              {processedImage ? (
+                <div className='relative w-full h-full'>
+                  {/* Blurred Background Image */}
+                  <img
+                    src={processedImage.processed}
+                    alt='背景模糊效果'
+                    className='absolute inset-0 w-full h-full object-cover'
+                  />
+
+                  {/* Original Image with Mask */}
+                  <div
+                    className='absolute inset-0 overflow-hidden'
+                    style={{ clipPath: `inset(0 ${100 - scanPosition}% 0 0)` }}
+                  >
+                    <img src={processedImage.original} alt='原图' className='w-full h-full object-cover' />
+                  </div>
+
+                  {/* Scanning Line */}
+                  <div
+                    className='absolute top-0 bottom-0 w-1 bg-green-400 shadow-lg'
+                    style={{ left: `${scanPosition}%` }}
+                  />
                 </div>
-                <p className='text-xs text-gray-500 ml-5'>💡 在预览区域点击并拖动鼠标来查看不同位置的对比效果</p>
-              </div>
+              ) : (
+                <div className='relative w-full h-full'>
+                  {/* Demo Blurred Background */}
+                  <img
+                    src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
+                    alt='演示 - 背景模糊'
+                    className='absolute inset-0 w-full h-full object-cover blur-md'
+                  />
+
+                  {/* Demo Original with Mask */}
+                  <div
+                    className='absolute inset-0 overflow-hidden'
+                    style={{ clipPath: `inset(0 ${100 - scanPosition}% 0 0)` }}
+                  >
+                    <img
+                      src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
+                      alt='演示 - 原图'
+                      className='w-full h-full object-cover'
+                    />
+                  </div>
+
+                  {/* Scanning Line */}
+                  <div
+                    className='absolute top-0 bottom-0 w-1 bg-green-400 shadow-lg'
+                    style={{ left: `${scanPosition}%` }}
+                  />
+
+                  {/* Overlay Text */}
+                  <div className='absolute inset-0 flex items-center justify-center bg-black/20'>
+                    <div className='text-center text-white'>
+                      <p className='text-lg font-semibold mb-2'>体验 AI 背景模糊</p>
+                      <p className='text-sm opacity-90'>上传您的照片开始处理</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Result Info */}
+            {processedImage && (
+              <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
+                <h3 className='font-medium text-green-800 mb-2'>处理完成！</h3>
+                <p className='text-sm text-green-700'>AI 已成功识别并分离前景主体，背景已应用模糊效果。</p>
+                <div className='mt-3 space-y-1'>
+                  <div className='flex items-center text-xs text-green-600'>
+                    <div className='w-3 h-3 bg-green-400 rounded-full mr-2'></div>
+                    <span>拖动绿色线条对比效果：左侧原图，右侧背景模糊</span>
+                  </div>
+                  <p className='text-xs text-gray-500 ml-5'>💡 在预览区域点击并拖动鼠标来查看不同位置的对比效果</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
