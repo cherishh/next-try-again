@@ -10,23 +10,6 @@ export default function Home() {
       {/* Hero Section */}
       <div className='relative py-16 lg:py-24'>
         <div className='max-w-7xl mx-auto px-4'>
-          {/* Header with Logo */}
-          <div className='flex items-center justify-between mb-16'>
-            <div className='flex items-center gap-2'>
-              <div className='w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center'>
-                <span className='text-white font-bold text-sm'>MS</span>
-              </div>
-              <span className='text-sm text-muted-foreground'>Background Blur</span>
-            </div>
-            <div className='flex items-center gap-3'>
-              <Button variant="ghost" size="sm">Tools</Button>
-              <Button variant="ghost" size="sm">Academy</Button>
-              <Button variant="ghost" size="sm">API</Button>
-              <Button variant="outline" size="sm">Login</Button>
-              <Button size="sm" className='bg-purple-600 hover:bg-purple-700'>Upgrade</Button>
-            </div>
-          </div>
-
           {/* Main Content */}
           <div className='text-center mb-16'>
             <h1 className='text-5xl lg:text-6xl font-bold mb-6'>
@@ -46,9 +29,9 @@ export default function Home() {
       </div>
 
       {/* Example Gallery Section */}
-      <div className='max-w-7xl mx-auto px-4 mb-16'>
+      {/* <div className='max-w-7xl mx-auto px-4 mb-16'>
         <ExampleGallery />
-      </div>
+      </div> */}
 
       {/* Key Features Section */}
       <div className='bg-card/30 py-16'>
@@ -68,7 +51,8 @@ export default function Home() {
               </div>
               <h3 className='text-xl font-semibold mb-2'>Smart Subject Detection</h3>
               <p className='text-muted-foreground text-sm'>
-                Advanced AI automatically identifies and preserves the main subject while blurring the background perfectly.
+                Advanced AI automatically identifies and preserves the main subject while blurring the background
+                perfectly.
               </p>
             </div>
 
@@ -131,9 +115,7 @@ export default function Home() {
           <div className='mb-8'>
             <p className='text-primary font-medium mb-2'>Impact</p>
             <h2 className='text-3xl font-bold mb-4'>Trusted by Creators Worldwide</h2>
-            <p className='text-muted-foreground'>
-              Join millions who create professional photos with background blur
-            </p>
+            <p className='text-muted-foreground'>Join millions who create professional photos with background blur</p>
           </div>
 
           <div className='grid md:grid-cols-3 gap-8'>
