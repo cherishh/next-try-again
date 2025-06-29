@@ -40,11 +40,6 @@ export function NavLink() {
 
         {/* Right: Login/Upgrade/Theme */}
         <div className='flex items-center gap-2'>
-          <Link href='/login'>
-            <Button variant='outline' size='sm'>
-              Login
-            </Button>
-          </Link>
           <Button
             size='sm'
             className='bg-purple-600 hover:bg-purple-700'
@@ -56,6 +51,7 @@ export function NavLink() {
           >
             Upgrade
           </Button>
+          <LoginBtn />
           <ThemeToggle />
         </div>
       </nav>

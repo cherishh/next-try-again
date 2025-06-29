@@ -19,8 +19,8 @@ export default function LoginBtn() {
 
   if (true) {
     return (
-      <Button variant='outline' size='icon' type='button' onClick={handleLogin}>
-        <LogInIcon className='size-4 scale-100' />
+      <Button className='px-8' variant='outline' size='icon' type='button' onClick={handleLogin}>
+        Login
         <span className='sr-only'>login</span>
       </Button>
     );
