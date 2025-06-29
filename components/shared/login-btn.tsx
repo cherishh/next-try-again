@@ -17,7 +17,7 @@ export default function LoginBtn() {
     });
   };
 
-  if (true) {
+  if (!user) {
     return (
       <Button className='px-8' variant='outline' size='icon' type='button' onClick={handleLogin}>
         Login
