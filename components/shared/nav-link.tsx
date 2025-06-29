@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 export function NavLink() {
   const pathname = usePathname();
   const router = useRouter();
-  console.log(pathname, 'pathname');
 
   return (
     <div className='w-full max-w-7xl mx-auto'>

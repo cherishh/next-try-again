@@ -13,7 +13,7 @@ export default function Home() {
           {/* Main Content */}
           <div className='text-center mb-16'>
             <h1 className='text-5xl lg:text-6xl font-bold mb-6'>
-              <span className='text-orange-400'>Blur Backgrounds</span>{' '}
+              <span className='text-orange-400'>Blur Background</span>{' '}
               <span className='text-foreground'>using AI in seconds</span>
             </h1>
             <p className='text-lg text-muted-foreground mb-8 max-w-2xl mx-auto'>
@@ -37,7 +37,8 @@ export default function Home() {
       <div className='bg-card/30 py-16'>
         <div className='max-w-6xl mx-auto px-4'>
           <div className='text-center mb-12'>
-            <h2 className='text-3xl font-bold mb-4'>Why Choose Raphael for Background Blur?</h2>
+            <p className='text-primary font-medium mb-2'>Why Us</p>
+            <h2 className='text-3xl font-bold mb-4'>Why Choose us for blur image background ?</h2>
             <p className='text-muted-foreground max-w-2xl mx-auto'>
               Professional photo editing made simple with AI-powered background detection and blur effects.
             </p>
@@ -49,7 +50,7 @@ export default function Home() {
               <div className='w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4'>
                 <span className='text-primary-foreground text-xl'>🎯</span>
               </div>
-              <h3 className='text-xl font-semibold mb-2'>Smart Subject Detection</h3>
+              <h3 className='text-xl font-semibold mb-2'>AI Background Selection</h3>
               <p className='text-muted-foreground text-sm'>
                 Advanced AI automatically identifies and preserves the main subject while blurring the background
                 perfectly.
@@ -60,9 +61,18 @@ export default function Home() {
               <div className='w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4'>
                 <span className='text-primary-foreground text-xl'>⚡</span>
               </div>
-              <h3 className='text-xl font-semibold mb-2'>Instant Processing</h3>
+              <h3 className='text-xl font-semibold mb-2'>Simple to Use</h3>
+              <p className='text-muted-foreground text-sm'>No complex settings - just upload and download.</p>
+            </div>
+
+            <div className='text-center p-6 hover:scale-105 transition-transform duration-300'>
+              <div className='w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4'>
+                <span className='text-primary-foreground text-xl'>📱</span>
+              </div>
+              <h3 className='text-xl font-semibold mb-2'>Adjust Blur</h3>
               <p className='text-muted-foreground text-sm'>
-                Get professional-looking results in seconds. No waiting, no complex settings - just upload and download.
+                Modify the background blur intensity to increase or decrease the visual separation between the subject
+                and the background—the stronger the blur, the more pronounced the depth and focus on the subject.
               </p>
             </div>
 
@@ -70,9 +80,9 @@ export default function Home() {
               <div className='w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4'>
                 <span className='text-primary-foreground text-xl'>💰</span>
               </div>
-              <h3 className='text-xl font-semibold mb-2'>Completely Free</h3>
+              <h3 className='text-xl font-semibold mb-2'>Generous Free Quota</h3>
               <p className='text-muted-foreground text-sm'>
-                No subscriptions, no watermarks, no limits. Professional background blur effects at zero cost.
+                No login required, no watermarks, no limits. Blur background at zero cost.
               </p>
             </div>
 
@@ -93,16 +103,6 @@ export default function Home() {
               <h3 className='text-xl font-semibold mb-2'>Privacy Protected</h3>
               <p className='text-muted-foreground text-sm'>
                 Your images are processed securely and never stored on our servers. Complete privacy guaranteed.
-              </p>
-            </div>
-
-            <div className='text-center p-6 hover:scale-105 transition-transform duration-300'>
-              <div className='w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-primary-foreground text-xl'>📱</span>
-              </div>
-              <h3 className='text-xl font-semibold mb-2'>All Formats Supported</h3>
-              <p className='text-muted-foreground text-sm'>
-                Works with JPEG, PNG, and other popular image formats. Perfect for photos from any device.
               </p>
             </div>
           </div>

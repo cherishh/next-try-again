@@ -128,6 +128,9 @@ export default function BackgroundBlur() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // API请求中止控制
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Demo animation for the preview (only when not processed and not dragging)
   useEffect(() => {
     if (processedImage || isDragging) return;
@@ -137,6 +140,26 @@ export default function BackgroundBlur() {
     }, 25);
     return () => clearInterval(interval);
   }, [processedImage, isDragging]);
+
+  // 处理页面关闭时中止API请求
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+
+    // 监听页面卸载事件
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // 组件卸载时清理
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Handle drag interaction for comparison
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -191,13 +214,13 @@ export default function BackgroundBlur() {
   const handleFile = (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('请选择图片文件');
+      toast.error('Please select an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('图片大小不能超过 5MB');
+      toast.error('Image size cannot exceed 5MB');
       return;
     }
 
@@ -221,6 +244,10 @@ export default function BackgroundBlur() {
     setIsProcessing(true);
     setHasError(false); // 清除之前的错误状态
 
+    // 创建新的AbortController
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
       // Create preview URL for original image
       const originalUrl = URL.createObjectURL(file);
@@ -229,15 +256,16 @@ export default function BackgroundBlur() {
       const formData = new FormData();
       formData.append('image', file);
 
-      // Call our blur background API
+      // Call our blur background API with abort signal
       const response = await fetch('/api/blur-background', {
         method: 'POST',
         body: formData,
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '处理图片失败');
+        throw new Error(errorData.error || 'Image processing failed');
       }
 
       const data = await response.json();
@@ -267,7 +295,7 @@ export default function BackgroundBlur() {
         setIsProcessing(false);
         setHasError(false); // 成功时清除错误状态
         setLastFailedFile(null);
-        toast.success('背景模糊处理成功！');
+        toast.success('Background blur processing completed!');
       };
       img.onerror = () => {
         // 设置错误状态
@@ -286,12 +314,18 @@ export default function BackgroundBlur() {
           fileInputRef.current.value = '';
         }
 
-        toast.error('加载处理后的图片失败，请重新上传');
+        toast.error('Failed to load processed image, please try again');
       };
       img.src = processedImageUrl;
     } catch (error) {
+      // 如果是请求被中止，不显示错误信息
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Image processing request aborted');
+        return;
+      }
+
       console.error('Error processing image:', error);
-      toast.error(error instanceof Error ? error.message : '处理图片失败，请稍后再试');
+      toast.error(error instanceof Error ? error.message : 'Failed to process image, please try again');
 
       // 设置错误状态并保存失败的文件
       setHasError(true);
@@ -308,6 +342,11 @@ export default function BackgroundBlur() {
       // 清理文件输入
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+    } finally {
+      // 清理AbortController引用
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
       }
     }
   };
@@ -362,7 +401,7 @@ export default function BackgroundBlur() {
             if (useFeathering) {
               const featherRadius = Math.max(1, Math.min(intensity * 0.25, 8)); // 自适应羽化半径
               if (featherRadius > 1) {
-                console.log(`应用蒙版羽化，半径: ${featherRadius.toFixed(1)}px`);
+                console.log(`Applying mask feathering, radius: ${featherRadius.toFixed(1)}px`);
                 maskImageData = gaussianBlur(maskImageData, featherRadius);
               }
             }
@@ -400,7 +439,7 @@ export default function BackgroundBlur() {
       };
 
       const onImageError = () => {
-        reject(new Error('图片加载失败'));
+        reject(new Error('Image loading failed'));
       };
 
       // 设置CORS和加载事件
@@ -441,8 +480,8 @@ export default function BackgroundBlur() {
 
         setIsAdjustingBlur(false);
       } catch (error) {
-        console.error('重新合成失败:', error);
-        toast.error('调整模糊强度失败');
+        console.error('Recomposite failed:', error);
+        toast.error('Failed to adjust blur intensity');
         setIsAdjustingBlur(false);
       }
     },
@@ -483,10 +522,10 @@ export default function BackgroundBlur() {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
 
-      toast.success('图片下载成功！');
+      toast.success('Image downloaded successfully!');
     } catch (error) {
       console.error('Download failed:', error);
-      toast.error('下载失败，请稍后再试');
+      toast.error('Download failed, please try again');
     }
   };
 
@@ -499,14 +538,14 @@ export default function BackgroundBlur() {
         handleFile(file);
       })
       .catch(() => {
-        toast.error('加载示例图片失败');
+        toast.error('Failed to load example image');
       });
   };
 
   const exampleImages = [
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100&h=100&fit=crop',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1000&h=1000&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=1000&h=1000&fit=crop',
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=1000&h=1000&fit=crop',
   ];
 
   return (
@@ -576,8 +615,8 @@ export default function BackgroundBlur() {
                 </div>
 
                 <div>
-                  <p className='text-lg font-medium text-gray-600 mb-2'>拖放图片到此处</p>
-                  <p className='text-gray-400 mb-6'>或者</p>
+                  <p className='text-lg font-medium text-gray-600 mb-2'>Drag and drop image here</p>
+                  <p className='text-gray-400 mb-6'>or</p>
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isProcessing}
@@ -586,21 +625,21 @@ export default function BackgroundBlur() {
                     {isProcessing ? (
                       <>
                         <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                        正在处理中...
+                        Processing...
                       </>
                     ) : (
-                      '上传图片'
+                      'Upload'
                     )}
                   </Button>
                 </div>
               </div>
             </div>
 
-            <p className='text-sm text-gray-500 text-center'>支持格式：JPEG、PNG（最大 5MB）</p>
+            <p className='text-sm text-gray-500 text-center'>Supported format: JPEG, PNG (Size limit 5MB)</p>
 
             {/* Example Images */}
             <div className='space-y-3'>
-              <p className='text-sm text-gray-600 text-center'>或者点击以下示例图片来试试</p>
+              <p className='text-sm text-gray-600 text-center'>Or click 👇 to try</p>
               <div className='flex justify-center gap-3'>
                 {exampleImages.map((src, index) => (
                   <button
@@ -609,7 +648,7 @@ export default function BackgroundBlur() {
                     className='relative overflow-hidden rounded-lg hover:opacity-80 transition-opacity border border-gray-200'
                     disabled={isProcessing}
                   >
-                    <img src={src} alt={`示例 ${index + 1}`} className='w-14 h-14 object-cover' />
+                    <img src={src} alt={`Example ${index + 1}`} className='w-14 h-14 object-cover' />
                   </button>
                 ))}
               </div>
@@ -619,7 +658,7 @@ export default function BackgroundBlur() {
             {processedImage && (
               <div className='space-y-4 pt-4'>
                 <div className='bg-gray-50 rounded-lg p-4'>
-                  <h3 className='text-sm font-medium text-gray-700 mb-3'>模糊强度调节</h3>
+                  <h3 className='text-sm font-medium text-gray-700 mb-3'>Blur Intensity</h3>
 
                   {/* Preset Buttons */}
                   <div className='flex gap-2 mb-4'>
@@ -629,7 +668,7 @@ export default function BackgroundBlur() {
                         blurIntensity <= 8 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                     >
-                      轻度
+                      Mild
                     </button>
                     <button
                       onClick={() => handleBlurIntensityChange(15)}
@@ -639,7 +678,7 @@ export default function BackgroundBlur() {
                           : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                     >
-                      中度
+                      Moderate
                     </button>
                     <button
                       onClick={() => handleBlurIntensityChange(25)}
@@ -647,7 +686,7 @@ export default function BackgroundBlur() {
                         blurIntensity > 20 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                     >
-                      重度
+                      Strong
                     </button>
                   </div>
 
@@ -663,8 +702,8 @@ export default function BackgroundBlur() {
                       disabled={isAdjustingBlur}
                     />
                     <div className='flex justify-between text-xs text-gray-500'>
-                      <span>无模糊</span>
-                      <span>强模糊</span>
+                      <span>No blur</span>
+                      <span>Strong blur</span>
                     </div>
                   </div>
 
@@ -672,7 +711,7 @@ export default function BackgroundBlur() {
                   {isAdjustingBlur && (
                     <div className='flex items-center gap-2 mt-2 text-xs text-orange-600'>
                       <Loader2 className='h-3 w-3 animate-spin' />
-                      <span>正在调整模糊效果...</span>
+                      <span>Adjusting...</span>
                     </div>
                   )}
                 </div>
@@ -684,7 +723,7 @@ export default function BackgroundBlur() {
                   disabled={isAdjustingBlur}
                 >
                   <Download className='mr-2 h-4 w-4' />
-                  下载背景模糊图片
+                  Download
                 </Button>
               </div>
             )}
@@ -695,8 +734,8 @@ export default function BackgroundBlur() {
                 <div className='flex items-center space-x-3'>
                   <Loader2 className='h-5 w-5 animate-spin text-blue-600' />
                   <div>
-                    <p className='text-sm font-medium text-blue-800'>正在处理您的图片</p>
-                    <p className='text-xs text-blue-600'>AI 正在分离前景与背景，请稍候...</p>
+                    <p className='text-sm font-medium text-blue-800'>Processing...</p>
+                    <p className='text-xs text-blue-600'>Your image is being processed, please wait...</p>
                   </div>
                 </div>
               </div>
@@ -712,16 +751,16 @@ export default function BackgroundBlur() {
                     </div>
                   </div>
                   <div className='flex-1'>
-                    <p className='text-sm font-medium text-red-800'>处理失败</p>
+                    <p className='text-sm font-medium text-red-800'>Failed</p>
                     <p className='text-xs text-red-600 mb-3'>
-                      文件: {lastFailedFile.name} - 可能是网络超时或AI服务繁忙
+                      File: {lastFailedFile.name} - This could be due to a network timeout or a busy AI service.
                     </p>
                     <Button
                       onClick={retryLastFile}
                       className='bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 h-auto'
                       disabled={isProcessing}
                     >
-                      重试处理
+                      Retry
                     </Button>
                   </div>
                 </div>
@@ -746,7 +785,7 @@ export default function BackgroundBlur() {
                   {/* Blurred Background Image */}
                   <img
                     src={processedImage.processed}
-                    alt='背景模糊效果'
+                    alt='Background blur effect'
                     className='absolute inset-0 w-full h-full object-cover'
                   />
 
@@ -755,7 +794,7 @@ export default function BackgroundBlur() {
                     className='absolute inset-0 overflow-hidden'
                     style={{ clipPath: `inset(0 ${100 - scanPosition}% 0 0)` }}
                   >
-                    <img src={processedImage.original} alt='原图' className='w-full h-full object-cover' />
+                    <img src={processedImage.original} alt='Original' className='w-full h-full object-cover' />
                   </div>
 
                   {/* Scanning Line with Handle */}
@@ -774,7 +813,7 @@ export default function BackgroundBlur() {
                   {/* Demo Blurred Background */}
                   <img
                     src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
-                    alt='演示 - 背景模糊'
+                    alt='Demo - Blurred'
                     className='absolute inset-0 w-full h-full object-cover blur-md'
                   />
 
@@ -785,7 +824,7 @@ export default function BackgroundBlur() {
                   >
                     <img
                       src='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&h=400&fit=crop'
-                      alt='演示 - 原图'
+                      alt='Demo - Original'
                       className='w-full h-full object-cover'
                     />
                   </div>
@@ -799,8 +838,8 @@ export default function BackgroundBlur() {
                   {/* Overlay Text */}
                   <div className='absolute inset-0 flex items-center justify-center bg-black/20'>
                     <div className='text-center text-white'>
-                      <p className='text-lg font-semibold mb-2'>体验 AI 背景模糊</p>
-                      <p className='text-sm opacity-90'>上传您的照片开始处理</p>
+                      <p className='text-lg font-semibold mb-2'>Try AI Background Blur</p>
+                      <p className='text-sm opacity-90'>Upload your image to start</p>
                     </div>
                   </div>
                 </div>
@@ -810,16 +849,19 @@ export default function BackgroundBlur() {
             {/* Result Info */}
             {processedImage && (
               <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
-                <h3 className='font-medium text-green-800 mb-2'>处理完成！</h3>
+                <h3 className='font-medium text-green-800 mb-2'>Complete!</h3>
                 <p className='text-sm text-green-700'>
-                  AI 已成功识别并分离前景主体，背景已应用模糊效果并进行边缘柔化。
+                  AI has successfully identified and separated the foreground, with blur effect applied to the
+                  background.
                 </p>
                 <div className='mt-3 space-y-1'>
                   <div className='flex items-center text-xs text-green-600'>
                     <div className='w-3 h-3 bg-green-400 rounded-full mr-2'></div>
-                    <span>拖动绿色手柄对比效果：左侧原图，右侧背景模糊</span>
+                    <span>Drag the green handle to compare: left is original, right is blurred</span>
                   </div>
-                  <p className='text-xs text-gray-500 ml-5'>💡 点击绿色圆形手柄并拖动来查看不同位置的对比效果</p>
+                  <p className='text-xs text-gray-500 ml-5'>
+                    💡 Click and drag the green handle to compare at different positions
+                  </p>
                 </div>
               </div>
             )}
