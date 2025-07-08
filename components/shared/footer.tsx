@@ -77,7 +77,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Section */}
-        <div className='border-t border-border mt-8 pt-8'>
+        <div className='border-t border-border mt-8 pt-8 mb-16'>
           <div className='flex flex-col md:flex-row justify-between items-center gap-4'>
             <div className='flex gap-6 text-sm text-muted-foreground'>
               <Link href='/privacy' className='hover:text-foreground transition-colors'>

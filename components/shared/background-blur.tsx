@@ -164,6 +164,7 @@ export default function BackgroundBlur() {
   // Handle drag interaction for comparison
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!processedImage) return;
+
     setIsDragging(true);
     updateScanPosition(e);
   };
@@ -177,10 +178,37 @@ export default function BackgroundBlur() {
     setIsDragging(false);
   };
 
+  // Touch events for mobile support
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!processedImage) return;
+
+    setIsDragging(true);
+    updateScanPositionTouch(e);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !processedImage) return;
+    e.preventDefault(); // Prevent scrolling
+    updateScanPositionTouch(e);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   const updateScanPosition = (e: React.MouseEvent) => {
     if (!previewRef.current) return;
     const rect = previewRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setScanPosition(percentage);
+  };
+
+  const updateScanPositionTouch = (e: React.TouchEvent) => {
+    if (!previewRef.current) return;
+    const rect = previewRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
     const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
     setScanPosition(percentage);
   };
@@ -737,7 +765,10 @@ export default function BackgroundBlur() {
                   <Loader2 className='h-5 w-5 animate-spin text-blue-600' />
                   <div>
                     <p className='text-sm font-medium text-blue-800'>Processing...</p>
-                    <p className='text-xs text-blue-600'>Your image is being processed, please wait...</p>
+                    <p className='text-xs text-blue-600'>
+                      Your image is being processed, please wait...(Due to the high demand, it may take up to a few
+                      minutes)
+                    </p>
                   </div>
                 </div>
               </div>
@@ -781,6 +812,10 @@ export default function BackgroundBlur() {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              style={{ touchAction: 'none' }}
             >
               {processedImage ? (
                 <div className='relative w-full h-full'>
@@ -814,7 +849,7 @@ export default function BackgroundBlur() {
                 <div className='relative w-full h-full'>
                   {/* Demo Blurred Background */}
                   <img
-                    src='https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/2.webp'
+                    src='https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/1.webp'
                     alt='Demo - Blurred'
                     className='w-full h-full object-cover'
                   />
@@ -825,7 +860,7 @@ export default function BackgroundBlur() {
                     style={{ clipPath: `inset(0 ${100 - scanPosition}% 0 0)` }}
                   >
                     <img
-                      src='https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/1.webp'
+                      src='https://pub-e1371aeef5e949c9a5df46cc9d875345.r2.dev/2.webp'
                       alt='Demo - Original'
                       className='w-full h-full object-cover'
                     />
