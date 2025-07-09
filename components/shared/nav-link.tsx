@@ -8,6 +8,8 @@ import ThemeToggle from '@/components/shared/mode-toggle';
 import LoginBtn from './login-btn';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import Icon from '@/public/android-chrome-192x192.png';
+import Image from 'next/image';
 
 export function NavLink() {
   const pathname = usePathname();
@@ -27,9 +29,7 @@ export function NavLink() {
       <nav className='flex items-center justify-between h-12 relative'>
         {/* Left: Logo + Brand */}
         <div className='flex items-center gap-2 cursor-pointer' onClick={() => router.push('/')}>
-          <div className='w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center'>
-            <span className='text-white font-bold text-sm'>B</span>
-          </div>
+          <Image src={Icon} alt='Brand Icon' width={26} height={26} className='rounded-md' />
           <span className='text-sm text-muted-foreground hidden sm:block'>Blur Background AI</span>
           <span className='text-sm text-muted-foreground sm:hidden'>Blur Background AI</span>
         </div>
