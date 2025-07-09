@@ -88,13 +88,13 @@ export default function Footer() {
               </Link>
             </div>
 
-            <div className='text-sm text-muted-foreground'>
-              Made with ❤️ by{' '}
+            {/* <div className='text-sm text-muted-foreground'>
+              Made with ❤️ for all{' '}
               <Link href='https://Tuxi.dev' className='hover:text-foreground transition-colors'>
                 Tuxi.dev
               </Link>{' '}
               and AI
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
