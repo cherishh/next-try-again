@@ -1,3 +1,4 @@
+// route protected through middleware
 export default function Dashboard() {
   return (
     <div className='m-4'>
